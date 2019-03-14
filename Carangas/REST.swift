@@ -36,6 +36,7 @@ class REST {
     private static let session = URLSession(configuration: configuration)
     
     class func loadCars(onComplete: @escaping ([Car]) -> Void) {
+        
         guard let url = URL(string: basePath) else {
             print("Erro ao montar URL")
             return
@@ -79,7 +80,53 @@ class REST {
         })
         
         task.resume()
+        print("Fim do metodo")
     }
+    
+    class func applyOperation(_ operation: RESTOperation, car: Car, onComplete: @escaping (Bool) -> Void) {
+        
+        let urlString = basePath + "/" + (car._id ?? "")
+        
+        var httpMethod: String = ""
+        
+        switch operation {
+        case .delete:
+            httpMethod = "DELETE"
+        case .save:
+            httpMethod = "POST"
+        case .update:
+            httpMethod = "PUT"
+        }
+        
+        guard let url = URL(string: urlString) else {
+            onComplete(false)
+            return
+        }
+        
+        var urlResquest = URLRequest(url: url)
+        urlResquest.httpMethod = httpMethod
+        urlResquest.httpBody = try! JSONEncoder().encode(car)
+        
+        let task = session.dataTask(with: urlResquest) { (data, _, _) in
+            guard let _ = data else {
+                onComplete(false)
+                return
+            }
+            
+            onComplete(true)
+        }
+        
+        task.resume()
+        
+    }
+    
 }
+
+enum RESTOperation {
+    case update
+    case delete
+    case save
+}
+
 
 

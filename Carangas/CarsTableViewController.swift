@@ -13,17 +13,31 @@ class CarsTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        refreshControl?.addTarget(self, action: #selector(loadCars), for: UIControl.Event.valueChanged)
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         print("Recuperando carros")
+        loadCars()
+    }
+    
+    @objc func loadCars() {
         REST.loadCars { [weak self] (cars) in
             self?.cars = cars
             DispatchQueue.main.async {
                 self?.tableView.reloadData()
-            }            
+                self?.refreshControl?.endRefreshing()
+            }
         }
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        if let vc = segue.destination as? CarViewController {
+            vc.car = cars[tableView.indexPathForSelectedRow!.row]
+        }
+        
     }
     
     // MARK: - Table view data source
@@ -38,5 +52,24 @@ class CarsTableViewController: UITableViewController {
         cell.textLabel?.text = car.name
         cell.detailTextLabel?.text = car.brand
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        
+        if editingStyle == .delete {
+            
+            let car = cars[indexPath.row]
+            
+            REST.applyOperation(.delete, car: car) { (success) in
+                if success {
+                    self.cars.remove(at: indexPath.row)
+                    DispatchQueue.main.async {
+                        tableView.deleteRows(at: [indexPath], with: .automatic)
+                    }
+                }
+            }
+            
+        }
+        
     }
 }
